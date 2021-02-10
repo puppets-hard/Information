@@ -46,12 +46,15 @@ def create_app(config_name):
     redis_store = redis.StrictRedis(host=config[config_name].REDIS_HOST, port=config[config_name].REDIS_PORT)
 
     # csrf保护开启，CSRFProtect只做验证工作，cookie中的 csrf_token 和表单中的 csrf_token 需要我们自己实现
-    CSRFProtect(app)
+    # CSRFProtect(app)
     # 开启session
     Session(app)
 
     from info.modules.index import index_blu  # 导入写好的蓝图
     # 注册蓝图,当我们在应用对象上注册一个蓝图时，可以指定一个url_prefix关键字参数（这个参数默认是/）
-    app.register_blueprint(index_blu, url_prefix="/test")
+    app.register_blueprint(index_blu)
+
+    from info.modules.passport import passport_blu
+    app.register_blueprint(passport_blu, url_prefix='/passport')
 
     return app
