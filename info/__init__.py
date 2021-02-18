@@ -57,4 +57,7 @@ def create_app(config_name):
     from info.modules.passport import passport_blu
     app.register_blueprint(passport_blu, url_prefix='/passport')
 
+    from info.modules.news import news_blu
+    app.register_blueprint(news_blu, url_prefix='/news')
+
     return app
