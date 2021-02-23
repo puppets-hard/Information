@@ -10,7 +10,7 @@ def user_login_data(f):
     # 增加@functools.wraps(f), 可以保持当前装饰器去装饰的函数的 __name__ 的值不变
     @functools.wraps(f)
     def wrapper(*args, **kwargs):
-        user_id = session['user_id']
+        user_id = session.get('user_id')
         user = None
 
         if user_id:
