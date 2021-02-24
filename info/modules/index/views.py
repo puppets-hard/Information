@@ -1,4 +1,4 @@
-from flask import session, current_app, jsonify, g
+from flask import session, current_app, jsonify, g, render_template
 
 from info.models import User, News, Category
 from info.common import user_login_data
@@ -52,5 +52,11 @@ def index():
         'categories': category_dict_list
     }
 
-    return jsonify(data)
+    # return jsonify(data)  # 返回json数据
+    return render_template('news/index.html', data=data)  # 可以根据Flask创建app的important_name找到new
 
+
+# 网站图标展示
+@index_blu.route('/favicon.ico')
+def favicon():
+    return current_app.send_static_file('news/favicon.ico')  # 这个根据static找

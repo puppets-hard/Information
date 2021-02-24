@@ -1,3 +1,4 @@
+import os
 import time
 
 from flask import jsonify, g, request, current_app, session
@@ -86,6 +87,7 @@ def pic_info():
         return jsonify(errno=RET.USERERR, errmsg='用户未登录')
 
     # 获取头像图片
+    print("profile路径：", os.getcwd())
     try:
         avatar_file = request.files.get('avatar')
         avatar_file = avatar_file.read()

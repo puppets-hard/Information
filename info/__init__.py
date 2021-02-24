@@ -1,4 +1,5 @@
 import logging
+import os
 from logging.handlers import RotatingFileHandler
 
 from flask import Flask
@@ -36,6 +37,8 @@ def create_app(config_name):
     setup_log(config_name)
 
     app = Flask(__name__)
+    # 认为项目路径是/home/python/Desktop/Information，但是可以根据import_name找到该路径下的其他文件
+    print("init路径：", os.getcwd(), "__name__:", __name__)
 
     app.config.from_object(config[config_name])  # 从配置对象中加载配置
 

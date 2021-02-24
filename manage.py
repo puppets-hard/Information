@@ -1,4 +1,6 @@
 # from flask import current_app
+import os
+
 from flask_script import Manager
 from flask_migrate import Migrate, MigrateCommand
 
@@ -16,4 +18,7 @@ manager.add_command('db', MigrateCommand)
 
 if __name__ == '__main__':
     # app.run()  使用flask_script后，这个地方要改，不然python manage.py db init时候会变成开启服务器
+    print("manage路径：", os.getcwd())  # 认为项目路径是/home/python/Desktop/Information
+    # init路径： /home/python/Desktop/Information __name__: info
+    # manage路径： /home/python/Desktop/Information
     manager.run()
