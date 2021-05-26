@@ -1,4 +1,4 @@
-from flask import request, jsonify, current_app, session, abort, g
+from flask import request, jsonify, current_app, session, abort, g, render_template
 
 from info import constants, db
 from info.common import user_login_data
@@ -7,13 +7,16 @@ from info.utils.response_code import RET
 from . import news_blu
 
 
+# 分局分类获取列表
 @news_blu.route('/news_list', methods=['GET'])
 def category_news_list():
     # 获取参数
-    data_json = request.json
-    category_id = data_json.get('cid', '1')  # 分类id
-    page = data_json.get('p', '1')  # 要获取的页数
-    per_page = data_json.get('per_page', constants.HOME_PAGE_MAX_NEWS)  # 每页的数据量，默认10条
+    # data_json = request.json  # 不是json格式，而是查询字符串
+    data_dict = request.args
+    # print(data_dict)  # 打印ImmutableMultiDict([('cid', '1'), ('page', '1'), ('per_page', '50')])
+    category_id = data_dict.get('cid', '1')  # 分类id
+    page = data_dict.get('page', '1')  # 要获取的页数
+    per_page = data_dict.get('per_page', constants.HOME_PAGE_MAX_NEWS)  # 每页的数据量，默认10条
 
     # 校验参数是否完整cid，page，per_page
     if not all([category_id, page, per_page]):
@@ -58,6 +61,17 @@ def news_detail(news_id):
     # user_id = session['user_id']
     # user = User.query.get(user_id)
 
+    # 点击排行榜
+    news_clicks_desc = None
+    try:
+        news_clicks_desc = News.query.order_by(News.clicks.desc()).limit(constants.CLICK_RANK_MAX_NEWS)
+    except Exception as e:
+        current_app.logger.error(e)
+    news_clicks_dict_list = []
+    for news_click_desc in news_clicks_desc:
+        news_clicks_dict_list.append(news_click_desc.to_basic_dict())
+
+    # 新闻详情
     news = None
     try:
         # 根据新闻id查询新闻详情数据
@@ -94,10 +108,13 @@ def news_detail(news_id):
     # 该条新闻的所有评论id
     comment_ids = [comment.id for comment in comments]
 
-    # 这个用户对现在这条新闻的 点赞评论列表        根据登陆的用户id，这条新闻的评论id查询
-    comment_likes = CommentLike.query.filter(CommentLike.user_id == g.user.id, CommentLike.comment_id.in_(comment_ids)).all()
-    # 提取登陆用户点赞了的评论id
-    comment_likes_ids = [comment_like.comment_id for comment_like in comment_likes]
+    comment_likes_ids = []
+    # 必须要登陆了才有点赞的评论
+    if g.user:
+        # 这个用户对现在这条新闻的 点赞评论列表        根据登陆的用户id，这条新闻的评论id查询
+        comment_likes = CommentLike.query.filter(CommentLike.user_id == g.user.id, CommentLike.comment_id.in_(comment_ids)).all()
+        # 提取登陆用户点赞了的评论id
+        comment_likes_ids = [comment_like.comment_id for comment_like in comment_likes]
 
     comment_list = []
     for comment in comments:  # 遍历这条新闻的所有评论对象
@@ -111,11 +128,13 @@ def news_detail(news_id):
     # 返回数据
     data = {
         "user_info": g.user.to_dict() if g.user else None,  # 一登录的用户信息
+        "click_news_list": news_clicks_dict_list,  # 点击排行展示
         "news": news.to_dict(),  # 新闻详情数据字典化
         "is_collected": is_collected,  # 该条新闻是否收藏
         "comments": comment_list  # 新闻评论
     }
-    return jsonify(errno=RET.OK, errmsg='OK', data=data)
+    # return jsonify(errno=RET.OK, errmsg='OK', data=data)
+    return render_template('news/detail.html', data=data)
 
 
 # 新闻收藏
@@ -125,7 +144,7 @@ def news_collect():
     # 判断用户是否登陆
     user = g.user
     if not user:
-        return jsonify(errno=RET.USERERR, errmsg='用户未登陆')
+        return jsonify(errno=RET.SESSIONERR, errmsg='用户未登陆')
 
     # 获取参数：news_id,action
     data_json = request.json
@@ -206,7 +225,7 @@ def news_comment():
     except Exception as e:
         current_app.logger.error(e)
         db.session.rollback()
-        return jsonify(errno=RET.DBERR, errmsg='保存品论数据失败')
+        return jsonify(errno=RET.DBERR, errmsg='保存评论数据失败')
 
     # news_comments = news.comments
     # comments_list = []
@@ -223,7 +242,7 @@ def get_comment_like():
     # 校验是否登陆
     user = g.user
     if not user:
-        return jsonify(errno=RET.USERERR, errmsg='用户未登录')
+        return jsonify(errno=RET.SESSIONERR, errmsg='用户未登录')
 
     # 获取参数：comment_id, news_id, action
     data_json = request.json

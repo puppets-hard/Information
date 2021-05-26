@@ -6,6 +6,7 @@ from flask import session, current_app, g
 from info.models import User
 
 
+# 公共函数，获取登陆的用户模型
 def user_login_data(f):
     # 增加@functools.wraps(f), 可以保持当前装饰器去装饰的函数的 __name__ 的值不变
     @functools.wraps(f)
@@ -23,3 +24,16 @@ def user_login_data(f):
         return f(*args, **kwargs)
 
     return wrapper
+
+
+# 过滤器，需要在app中注册
+def do_index_class(index):
+    """自定义过滤器，过滤点击排行的序号class"""
+    if index == 1:
+        return "first"
+    elif index == 2:
+        return "second"
+    elif index == 3:
+        return "third"
+    else:
+        return ""

@@ -66,4 +66,7 @@ def create_app(config_name):
     from info.modules.profile import profile_blu
     app.register_blueprint(profile_blu, url_prefix='/profile')
 
+    from info.common import do_index_class  # 注册自定义过滤器
+    app.add_template_filter(do_index_class, "index_class")
+
     return app
