@@ -31,7 +31,7 @@ def category_news_list():
         return jsonify(errno=RET.PARAMERR, errmsg='参数错误')
 
     # 根据cid查询数据库，根据创建日期排序
-    filters = []
+    filters = [News.status == 0]
     if category_id != '1':  # 如果不是1（默认所有最新新闻）
         filters.append(News.category_id == category_id)  # 将查询条件放入查询列表中
     try:

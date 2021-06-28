@@ -1,17 +1,17 @@
 import os
 import time
 
-from flask import jsonify, g, request, current_app, session
+from flask import jsonify, g, request, current_app, session, render_template, redirect
 
 from info import db, constants
-from info.models import News
+from info.models import News, Category
 from info.utils.response_code import RET
 from info.common import user_login_data
 from . import profile_blu
 
 
 # 用户资料展示
-@profile_blu.route('/user_info', methods=['GET'])
+@profile_blu.route('/info', methods=['GET'])
 @user_login_data
 def user_info():
     # 获取登陆用户模型
@@ -19,19 +19,19 @@ def user_info():
 
     # 校验是否登陆
     if not user:
-        return jsonify(errno=RET.OK, errmsg='用户未登录')
+        return redirect("/index")
 
     # 返回数据
     data = {
         'user_info': user.to_dict()  # 从数据库中查找到用户信息
     }
-    return jsonify(errno=RET.OK, errmsg='OK', data=data)
+    return render_template("news/user.html", data=data)
 
 
 # 基本资料设置
-@profile_blu.route('/set_base_info', methods=['GET', 'POST'])
+@profile_blu.route('/base_info', methods=['GET', 'POST'])
 @user_login_data
-def set_base_info():
+def base_info():
     # 获取登陆信息
     user = g.user
 
@@ -41,7 +41,7 @@ def set_base_info():
 
     # 如果是get方法， 返回用户的基本信息
     if request.method == 'GET':
-        return jsonify(errno=RET.OK, errmsg='OK', data=user.to_dict())
+        return render_template('news/user_base_info.html', data={"user_info": user.to_dict()})
 
     # 获取参数：nick_name, signature, gender
     data_json = request.json
@@ -120,7 +120,7 @@ def pic_info():
 
 
 # 密码修改
-@profile_blu.route('/password_info', methods=['POST'])
+@profile_blu.route('/password_info', methods=['POST', 'GET'])
 @user_login_data
 def password_info():
     # 获取用户对象
@@ -129,6 +129,9 @@ def password_info():
     # 判断用户是否登陆
     if not user:
         return jsonify(errno=RET.USERERR, errmsg='用户未登录')
+
+    if request.method == 'GET':
+        return render_template("news/user_pass_info.html")
 
     # 接收参数
     data_json = request.json
@@ -206,11 +209,11 @@ def user_collection():
     }
 
     # 反回数据
-    return jsonify(errno=RET.OK, errmsg="OK", data=data)
+    return render_template("news/user_collection.html", data=data)
 
 
 # 发布新闻
-@profile_blu.route('/news_release', methods=['POST'])
+@profile_blu.route('/news_release', methods=['POST', 'GET'])
 @user_login_data
 def news_release():
     # 获取用户的登陆对象
@@ -220,9 +223,24 @@ def news_release():
     if not user:
         return jsonify(errno=RET.USERERR, errmsg="用户未登陆")
 
+    categories = []  # 分类对象
+    try:
+        categories = Category.query.all()
+    except Exception as e:
+        current_app.logger.error(e)
+
+    category_list = []
+    for category in categories:
+        category_dict = category.to_dict()
+        category_list.append(category_dict)
+    category_list.pop(0)  # 移除"最新"分类
+
+    if request.method == "GET":
+        return render_template("/news/user_news_release.html", data={"categories": category_list})
+
     source = '个人发布'
     # 获取提交的数据
-    data_form =request.form
+    data_form = request.form
     title = data_form.get('title')
     digest = data_form.get('digest')
     content = data_form.get('content')
@@ -318,4 +336,4 @@ def news_list():
         "current_page": current_page
     }
     # 返回数据
-    return jsonify(data=data)
+    return render_template("/news/user_news_list.html", data=data)

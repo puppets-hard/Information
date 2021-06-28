@@ -2,7 +2,7 @@ import logging
 import os
 from logging.handlers import RotatingFileHandler
 
-from flask import Flask
+from flask import Flask, g, render_template
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect
 from flask_session import Session
@@ -11,7 +11,11 @@ import redis
 from config import config  # 这个注意下目录位置：info的init文件相当于和info目录统计
 
 # db = SQLAlchemy(app)  # 创建数据库对象
+
 db = SQLAlchemy()  # 这里从上面修改
+
+from info.common import user_login_data
+
 # 创建一个redis实例
 # redis_store = redis.StrictRedis(host=DevelopementConfig.REDIS_HOST, port=DevelopementConfig.REDIS_PORT)
 redis_store = None  # 这里从上面修改为None值
@@ -53,6 +57,14 @@ def create_app(config_name):
     # 开启session
     Session(app)
 
+    # 404页面
+    @app.errorhandler(404)
+    @user_login_data
+    def page_not_found(_):
+        user = g.user
+        data = {"user_info": user.to_dict() if user else None}
+        return render_template('news/404.html', data=data)
+
     from info.modules.index import index_blu  # 导入写好的蓝图
     # 注册蓝图,当我们在应用对象上注册一个蓝图时，可以指定一个url_prefix关键字参数（这个参数默认是/）
     app.register_blueprint(index_blu)
@@ -64,7 +76,7 @@ def create_app(config_name):
     app.register_blueprint(news_blu, url_prefix='/news')
 
     from info.modules.profile import profile_blu
-    app.register_blueprint(profile_blu, url_prefix='/profile')
+    app.register_blueprint(profile_blu, url_prefix='/user')
 
     from info.common import do_index_class  # 注册自定义过滤器
     app.add_template_filter(do_index_class, "index_class")
